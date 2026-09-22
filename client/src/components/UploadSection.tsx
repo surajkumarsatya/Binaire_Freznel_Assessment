@@ -5,6 +5,7 @@ type UploadSectionProps = {
   uploading: boolean;
   error: string;
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onFilesDrop: (files: File[]) => void;
   onPriorityChange: (fileName: string, priority: Priority) => void;
   onUpload: () => void;
 };
@@ -14,20 +15,54 @@ function UploadSection({
   uploading,
   error,
   onFileChange,
+  onFilesDrop,
   onPriorityChange,
   onUpload,
 }: UploadSectionProps) {
+  const handleDragOver = (
+    event: React.DragEvent<HTMLLabelElement>
+  ) => {
+    event.preventDefault();
+  };
+
+  const handleDrop = (
+    event: React.DragEvent<HTMLLabelElement>
+  ) => {
+    event.preventDefault();
+
+    const droppedFiles = Array.from(
+      event.dataTransfer.files
+    );
+
+    const csvFiles = droppedFiles.filter((file) =>
+      file.name.toLowerCase().endsWith(".csv")
+    );
+
+    if (csvFiles.length > 0) {
+      onFilesDrop(csvFiles);
+    }
+  };
+
   return (
     <section className="upload-section">
       <div className="upload-card">
         <h3>Upload CSV file</h3>
 
-        <label htmlFor="file-input" className="file-picker">
+        <label
+          htmlFor="file-input"
+          className="file-picker"
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
           {files.length > 0
             ? `${files.length} CSV file${
                 files.length > 1 ? "s" : ""
               } selected`
             : "Choose CSV files"}
+
+          <span className="drag-drop-text">
+            or drag & drop CSV files here
+          </span>
         </label>
 
         <input

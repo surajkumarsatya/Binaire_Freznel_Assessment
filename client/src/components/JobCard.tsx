@@ -49,20 +49,21 @@ function JobCard({ job }: JobCardProps) {
           </span>
         </div>
 
-        {job.status === "PROCESSING" && (
-          <div className="timeline-progress">
-            <div className="progress-track">
-              <div
-                className="progress-bar"
-                style={{
-                  width: `${job.progress}%`,
-                }}
-              />
-            </div>
+        {(job.status === "PROCESSING" ||
+            job.status === "COMPLETED") && (
+            <div className="timeline-progress">
+                <div className="progress-track">
+                <div
+                    className="progress-bar"
+                    style={{
+                    width: `${job.progress}%`,
+                    }}
+                />
+                </div>
 
-            <span>{job.progress}%</span>
-          </div>
-        )}
+                <span>{job.progress}%</span>
+            </div>
+            )}
 
         <div
           className={`timeline-step ${

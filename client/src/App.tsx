@@ -5,7 +5,9 @@ import QueueSection from "./components/QueueSection";
 import type { Job, SelectedFile } from "./types/job";
 import "./App.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api/jobs";
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api/jobs";
 
 function App() {
   const [files, setFiles] = useState<SelectedFile[]>([]);
@@ -13,11 +15,7 @@ function App() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleFileChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const selectedFiles = Array.from(event.target.files || []);
-
+  const handleFiles = (selectedFiles: File[]) => {
     if (selectedFiles.length === 0) {
       return;
     }
@@ -40,6 +38,16 @@ function App() {
         priority: "HIGH",
       }))
     );
+  };
+
+  const handleFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const selectedFiles = Array.from(
+      event.target.files || []
+    );
+
+    handleFiles(selectedFiles);
   };
 
   const handlePriorityChange = (
@@ -82,7 +90,9 @@ function App() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || "Upload failed.");
+          throw new Error(
+            data.message || "Upload failed."
+          );
         }
 
         setJobs((previousJobs) => [
@@ -165,6 +175,7 @@ function App() {
         uploading={uploading}
         error={error}
         onFileChange={handleFileChange}
+        onFilesDrop={handleFiles}
         onPriorityChange={handlePriorityChange}
         onUpload={handleUpload}
       />
