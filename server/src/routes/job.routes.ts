@@ -1,10 +1,11 @@
 import { Router } from "express";
 import multer from "multer";
 import { randomUUID } from "crypto";
+import fs from "fs";
 
 import { jobQueue } from "../services/jobQueue.js";
-import { processNextJob } from "../services/jobProcessor.js";
 import type { Priority, Job } from "../types/job.js";
+import { processNextJob } from "../services/jobProcessor.js";
 
 const router = Router();
 
@@ -19,9 +20,23 @@ router.post("/upload", upload.single("file"), (req, res) => {
     });
   }
 
+  const isCsvFile = req.file.originalname
+    .toLowerCase()
+    .endsWith(".csv");
+
+  if (!isCsvFile) {
+    fs.unlinkSync(req.file.path);
+
+    return res.status(400).json({
+      message: "Only CSV files are allowed",
+    });
+  }
+
   const priority = req.body.priority as Priority;
 
   if (priority !== "HIGH" && priority !== "LOW") {
+    fs.unlinkSync(req.file.path);
+
     return res.status(400).json({
       message: "Priority must be HIGH or LOW",
     });
@@ -37,6 +52,7 @@ router.post("/upload", upload.single("file"), (req, res) => {
   };
 
   jobQueue.addJob(job);
+
   processNextJob();
 
   return res.status(201).json({

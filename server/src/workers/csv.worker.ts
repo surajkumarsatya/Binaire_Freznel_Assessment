@@ -6,8 +6,18 @@ const filePath = workerData.filePath;
 
 let total = 0;
 let processedBytes = 0;
+let hasNumericValue = false;
 
 const fileSize = fs.statSync(filePath).size;
+
+if (fileSize === 0) {
+  parentPort?.postMessage({
+    type: "error",
+    error: "CSV file is empty",
+  });
+
+  process.exit(0);
+}
 
 const fileStream = fs.createReadStream(filePath);
 
@@ -37,11 +47,21 @@ parser.on("data", (row: string[]) => {
 
     if (!Number.isNaN(number)) {
       total += number;
+      hasNumericValue = true;
     }
   }
 });
 
 parser.on("end", () => {
+  if (!hasNumericValue) {
+    parentPort?.postMessage({
+      type: "error",
+      error: "CSV does not contain numeric values",
+    });
+
+    return;
+  }
+
   parentPort?.postMessage({
     type: "completed",
     total,
