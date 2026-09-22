@@ -1,7 +1,7 @@
 .app {
-  width: min(1100px, 92%);
+  width: 90%;
   margin: 0 auto;
-  padding: 50px 0 80px;
+  padding: 20px 0 50px;
 }
 
 html,
@@ -15,7 +15,7 @@ body {
   justify-content: space-between;
   align-items: flex-start;
   gap: 30px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .eyebrow {
@@ -63,7 +63,7 @@ h2 {
 }
 
 .upload-section {
-  margin-bottom: 70px;
+  margin-bottom: 40px;
 }
 
 .upload-card {
@@ -109,6 +109,34 @@ h2 {
   border-radius: 8px;
   background: #eee;
   font-size: 13px;
+}
+
+.selected-file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.file-priority {
+  display: flex;
+  gap: 6px;
+}
+
+.file-priority-button {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: white;
+  color: #555;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.file-priority-button.active {
+  border-color: #111;
+  background: #111;
+  color: white;
 }
 
 .priority-section {
@@ -173,12 +201,12 @@ h2 {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .section-heading h2 {
   margin-bottom: 0;
-  font-size: 28px;
+  font-size: 24px;
   letter-spacing: -0.03em;
 }
 
@@ -206,7 +234,8 @@ h2 {
 
 .jobs {
   display: grid;
-  gap: 14px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
 .job-card {
@@ -399,7 +428,15 @@ h2 {
   text-align: right;
 }
 
-@media (max-width: 700px) {
+/* Tablet */
+@media (max-width: 900px) {
+  .jobs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile */
+@media (max-width: 600px) {
   .app {
     padding-top: 30px;
   }
@@ -420,5 +457,9 @@ h2 {
   .section-heading {
     align-items: flex-start;
     gap: 10px;
+  }
+
+  .jobs {
+    grid-template-columns: 1fr;
   }
 }
