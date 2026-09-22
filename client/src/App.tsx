@@ -1,27 +1,14 @@
 import { useEffect, useState } from "react";
+import Header from "./components/Header";
+import UploadSection from "./components/UploadSection";
+import QueueSection from "./components/QueueSection";
+import type { Job, SelectedFile } from "./types/job";
 import "./App.css";
 
 const API_URL = "http://localhost:5000/api/jobs";
 
-type JobStatus =
-  | "QUEUED"
-  | "PROCESSING"
-  | "COMPLETED"
-  | "FAILED";
-
-type Job = {
-  id: string;
-  fileName: string;
-  filePath: string;
-  priority: "HIGH" | "LOW";
-  status: JobStatus;
-  progress: number;
-  result?: number;
-};
-
 function App() {
-  const [file, setFile] = useState<File | null>(null);
-  const [priority, setPriority] = useState<"HIGH" | "LOW">("HIGH");
+  const [files, setFiles] = useState<SelectedFile[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -29,51 +16,82 @@ function App() {
   const handleFileChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const selectedFile = event.target.files?.[0];
+    const selectedFiles = Array.from(event.target.files || []);
 
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       return;
     }
 
-    if (!selectedFile.name.toLowerCase().endsWith(".csv")) {
-      setError("Please select a CSV file.");
-      setFile(null);
+    const invalidFile = selectedFiles.find(
+      (file) => !file.name.toLowerCase().endsWith(".csv")
+    );
+
+    if (invalidFile) {
+      setError("Only CSV files are allowed.");
+      setFiles([]);
       return;
     }
 
     setError("");
-    setFile(selectedFile);
+
+    setFiles(
+      selectedFiles.map((file) => ({
+        file,
+        priority: "HIGH",
+      }))
+    );
+  };
+
+  const handlePriorityChange = (
+    fileName: string,
+    priority: "HIGH" | "LOW"
+  ) => {
+    setFiles((previousFiles) =>
+      previousFiles.map((item) =>
+        item.file.name === fileName
+          ? {
+              ...item,
+              priority,
+            }
+          : item
+      )
+    );
   };
 
   const handleUpload = async () => {
-    if (!file) {
-      setError("Please select a CSV file.");
+    if (files.length === 0) {
+      setError("Please select at least one CSV file.");
       return;
     }
 
     setUploading(true);
     setError("");
 
-    const formData = new FormData();
-
-    formData.append("file", file);
-    formData.append("priority", priority);
-
     try {
-      const response = await fetch(`${API_URL}/upload`, {
-        method: "POST",
-        body: formData,
-      });
+      for (const item of files) {
+        const formData = new FormData();
 
-      const data = await response.json();
+        formData.append("file", item.file);
+        formData.append("priority", item.priority);
 
-      if (!response.ok) {
-        throw new Error(data.message || "Upload failed.");
+        const response = await fetch(`${API_URL}/upload`, {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Upload failed.");
+        }
+
+        setJobs((previousJobs) => [
+          data.job,
+          ...previousJobs,
+        ]);
       }
 
-      setJobs((previousJobs) => [data.job, ...previousJobs]);
-
-      setFile(null);
+      setFiles([]);
 
       const fileInput = document.getElementById(
         "file-input"
@@ -140,216 +158,18 @@ function App() {
 
   return (
     <main className="app">
-      <header className="header">
-        <div>
-          <h2>Multi-user Queueing System</h2>
-        </div>
-      </header>
+      <Header />
 
-      <section className="upload-section">
-        <div className="upload-card">
-          <h2>Upload CSV file</h2>
+      <UploadSection
+        files={files}
+        uploading={uploading}
+        error={error}
+        onFileChange={handleFileChange}
+        onPriorityChange={handlePriorityChange}
+        onUpload={handleUpload}
+      />
 
-          <label htmlFor="file-input" className="file-picker">
-            {file ? file.name : "Choose CSV file"}
-          </label>
-
-          <input
-            id="file-input"
-            type="file"
-            accept=".csv"
-            onChange={handleFileChange}
-            hidden
-          />
-
-          {file && (
-            <div className="selected-file">
-              <span>{file.name}</span>
-              <span>
-                {(file.size / 1024).toFixed(1)} KB
-              </span>
-            </div>
-          )}
-
-          <div className="priority-section">
-            <p className="label">Priority</p>
-
-            <div className="priority-options">
-              <button
-                type="button"
-                className={
-                  priority === "HIGH"
-                    ? "priority active high"
-                    : "priority"
-                }
-                onClick={() => setPriority("HIGH")}
-              >
-                High
-              </button>
-
-              <button
-                type="button"
-                className={
-                  priority === "LOW"
-                    ? "priority active low"
-                    : "priority"
-                }
-                onClick={() => setPriority("LOW")}
-              >
-                Low
-              </button>
-            </div>
-          </div>
-
-          <button
-            className="upload-button"
-            onClick={handleUpload}
-            disabled={!file || uploading}
-          >
-            {uploading ? "Uploading..." : "Upload & Queue"}
-          </button>
-
-          {error && <p className="error">{error}</p>}
-        </div>
-      </section>
-
-      <section className="queue-section">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">JOBS</p>
-            <h2>Processing Queue</h2>
-          </div>
-
-          <span className="job-count">
-            {jobs.length} {jobs.length === 1 ? "job" : "jobs"}
-          </span>
-        </div>
-
-        {jobs.length === 0 ? (
-          <div className="empty-state">
-            <p>No files in the queue yet.</p>
-            <span>Upload a CSV to create your first job.</span>
-          </div>
-        ) : (
-          <div className="jobs">
-            {jobs.map((job) => (
-              <article className="job-card" key={job.id}>
-                <div className="job-top">
-                  <div>
-                    <h3>{job.fileName}</h3>
-                    <p className="process-id">
-                      Process ID: {job.id}
-                    </p>
-                  </div>
-
-                  <span
-                    className={`priority-badge ${job.priority.toLowerCase()}`}
-                  >
-                    {job.priority}
-                  </span>
-                </div>
-
-                <div className="job-timeline">
-                  <div className="timeline-step completed">
-                    <span className="timeline-dot">✓</span>
-                    <span>File uploaded</span>
-                  </div>
-
-                  <div
-                    className={`timeline-step ${
-                      job.status !== "QUEUED" ||
-                      job.status === "QUEUED"
-                        ? "completed"
-                        : ""
-                    }`}
-                  >
-                    <span className="timeline-dot">✓</span>
-                    <span>Added to queue</span>
-                  </div>
-
-                  <div
-                    className={`timeline-step ${
-                      job.status === "PROCESSING" ||
-                      job.status === "COMPLETED"
-                        ? "completed"
-                        : "active"
-                    }`}
-                  >
-                    <span className="timeline-dot">
-                      {job.status === "QUEUED" ? "3" : "✓"}
-                    </span>
-
-                    <span>
-                      {job.status === "QUEUED"
-                        ? "Waiting for processing"
-                        : "Processing"}
-                    </span>
-                  </div>
-
-                  {job.status === "PROCESSING" && (
-                    <div className="timeline-progress">
-                      <div className="progress-track">
-                        <div
-                          className="progress-bar"
-                          style={{
-                            width: `${job.progress}%`,
-                          }}
-                        />
-                      </div>
-
-                      <span>{job.progress}%</span>
-                    </div>
-                  )}
-
-                  <div
-                    className={`timeline-step ${
-                      job.status === "COMPLETED" ? "completed" : ""
-                    }`}
-                  >
-                    <span className="timeline-dot">
-                      {job.status === "COMPLETED" ? "✓" : "4"}
-                    </span>
-
-                    <span>
-                      {job.status === "COMPLETED"
-                        ? "Completed"
-                        : "Waiting for completion"}
-                    </span>
-                  </div>
-                </div>
-
-                {job.status === "PROCESSING" && (
-                  <div className="progress-wrapper">
-                    <div className="progress-track">
-                      <div
-                        className="progress-bar"
-                        style={{
-                          width: `${job.progress}%`,
-                        }}
-                      />
-                    </div>
-
-                    <span>{job.progress}%</span>
-                  </div>
-                )}
-
-                {job.status === "COMPLETED" && (
-                  <div className="result">
-                    <span>Final result</span>
-                    <strong>{job.result}</strong>
-                  </div>
-                )}
-
-                {job.status === "FAILED" && (
-                  <div className="failed-message">
-                    Unable to process this file.
-                  </div>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+      <QueueSection jobs={jobs} />
     </main>
   );
 }
