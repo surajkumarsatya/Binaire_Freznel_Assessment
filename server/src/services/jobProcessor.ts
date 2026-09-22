@@ -20,15 +20,24 @@ export function processNextJob() {
     status: "PROCESSING",
   });
 
-  const worker = new Worker(
-    new URL("../workers/csv.worker.ts", import.meta.url),
-    {
+  const isDevelopment = import.meta.url.endsWith(".ts");
+
+const worker = new Worker(
+  new URL(
+    isDevelopment
+      ? "../workers/csv.worker.ts"
+      : "../workers/csv.worker.js",
+    import.meta.url
+  ),
+  {
+    ...(isDevelopment && {
       execArgv: ["--import", "tsx/esm"],
-      workerData: {
-        filePath: job.filePath,
-      },
-    }
-  );
+    }),
+    workerData: {
+      filePath: job.filePath,
+    },
+  }
+);
 
   worker.on("message", (message) => {
     if (message.type === "progress") {
