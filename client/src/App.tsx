@@ -5,7 +5,7 @@ import QueueSection from "./components/QueueSection";
 import type { Job, SelectedFile } from "./types/job";
 import "./App.css";
 
-const API_URL = "http://localhost:5000/api/jobs";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api/jobs";
 
 function App() {
   const [files, setFiles] = useState<SelectedFile[]>([]);
